@@ -10,6 +10,7 @@ import tarfile
 import getpass
 import json
 import base64
+import re
 
 import docker
 from docker.utils import kwargs_from_env
@@ -309,6 +310,7 @@ class Engine(BaseEngine):
         :param url: URL of registry - default defined per backend
         :return: None
         """
+        logger.debug("Login into %s with %s/%s" % (url, username, password))
         client = self.get_client()
         if not url:
             url = self.default_registry_url
@@ -342,21 +344,25 @@ class Engine(BaseEngine):
         :param url: URL
         :return: (username, email) tuple
         """
-
+        url_key = re.sub(r'^.+://', '', url)
+        logger.info("Looking for %s" % url_key)
+        username = None
         for docker_config_filepath in self.DOCKER_CONFIG_FILEPATH_CASCADE:
-            if docker_config_filepath and os.path.exists(
-                    docker_config_filepath):
+            logger.info("checking %s" % docker_config_filepath)
+            if docker_config_filepath and os.path.exists(docker_config_filepath):
                 docker_config = json.load(open(docker_config_filepath))
+                logger.info("found!")
                 break
         if 'auths' in docker_config:
             docker_config = docker_config['auths']
-        auth_key = docker_config.get(url, {}).get('auth', '')
-        email = docker_config.get(url, {}).get('email', '')
+        auth_key = docker_config.get(url_key, {}).get('auth', '')
+        email = docker_config.get(url_key, {}).get('email', '')
         if auth_key:
             username, password = base64.decodestring(auth_key).split(':', 1)
-            return username, email
+            logger.info("decoded %s %s" % (username, password))
+        return username, email
 
-    def push_latest_image(self, host, username):
+    def push_latest_image(self, host, username, url):
         """
         Push the latest built image for a host to a registry
 
@@ -367,16 +373,23 @@ class Engine(BaseEngine):
         client = self.get_client()
         image_id, image_buildstamp = get_latest_image_for(self.project_name,
                                                           host, client)
+        if url:
+            registry = re.sub(r'^.?://', '', url)
+            repository = '%s/%s/%s-%s' % (registry, username, self.project_name, host)
+        else:
+            repository = '%s/%s-%s' % (username, self.project_name, host)
+        logger.info("Tagging to %s" % repository)
         client.tag(image_id,
-                   '%s/%s-%s' % (username, self.project_name, host),
+                   repository,
                    tag=image_buildstamp)
         logger.info('Pushing %s-%s:%s...', self.project_name, host, image_buildstamp)
-        status = client.push('%s/%s-%s' % (username, self.project_name, host),
+        status = client.push(repository,
                              tag=image_buildstamp,
                              stream=True)
         last_status = None
         for line in status:
             line = json.loads(line)
+            logger.info(json.dumps(line))
             if type(line) is dict and 'error' in line:
                 logger.error(line['error'])
             elif type(line) is dict and 'status' in line:

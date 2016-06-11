@@ -270,7 +270,7 @@ def cmdrun_push(base_path, engine, username=None, password=None, email=None,
 
     logger.info('Pushing to repository for user %s', username)
     for host in engine_obj.hosts_touched_by_playbook():
-        engine_obj.push_latest_image(host, username)
+        engine_obj.push_latest_image(host, username, url)
     logger.info('Done!')
 
 
