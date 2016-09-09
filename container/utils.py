@@ -69,7 +69,7 @@ def config_format_version(base_path, config_data=None):
     return int(config_data.pop('version', 1))
 
 
-def assert_initialized(base_path, kwargs):
+def assert_initialized(base_path, playbook='main.yml'):
     '''
     Raise exception if the ansible directory relative to base_path was not initialized.
 

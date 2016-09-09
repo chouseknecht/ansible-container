@@ -147,10 +147,6 @@ def subcmd_shipit_parser(parser, subparser):
 
 def commandline():
 
-    # default_base_path = os.getcwd()
-    # if os.environ.get('ANSIBLE_CONTAINER_PROJECT'):
-    #     default_base_path = os.environ['ANSIBLE_CONTAINER_PROJECT']
-
     parser = argparse.ArgumentParser(description=u'Build, orchestrate, run, and '
                                                  u'ship Docker containers with '
                                                  u'Ansible playbooks')
@@ -166,8 +162,8 @@ def commandline():
                         help=u'Path to a YAML or JSON formatted file providing variables for '
                              u'Jinja2 templating in container.yml.', default=None)
     parser.add_argument('--playbook', action='store',
-                        help=u'Path to a playbook, overriding main.yml. Must be a valid path inside '
-                             u'Ansible Builder Container.', dest='playbook', default=None)
+                        help=u'Path to a playbook, overriding main.yml. Path will become a volume '
+                             u'in Ansible Builder Container', dest='playbook', default='main.yml')
     parser.add_argument('--with-volumes', '-v', action='append',
                         help=u'Mount one or more volumes to the Ansible Builder Container. '
                              u'Specify volumes as strings using the Docker volume format.', default=[])

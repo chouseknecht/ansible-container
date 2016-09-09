@@ -759,11 +759,8 @@ class Engine(BaseEngine):
         logger.debug(config_yaml)
         with_volumes = self.params.get('with_volumes')
         with_variables = self.params.get('with_variables')
-
-        logger.debug("with_volumes: %s" % with_volumes)
-
-        #logger.debug("with volumes: {0}\n with_variables: {1}".format(','.join(with_volumes),
-        #                                                              ','.join(with_variables)))
+        logger.debug("with volumes: {0}\n with_variables: {1}".format(','.join(with_volumes),
+                                                                      ','.join(with_variables)))
         jinja_render_to_temp('%s-docker-compose.j2.yml' % (operation,),
                              temp_dir,
                              'docker-compose.yml',
