@@ -53,3 +53,7 @@ class AnsibleContainerShipItException(Exception):
 class AnsibleContainerFilterException(Exception):
     pass
 
+class AnsibleContainerConfigException(Exception):
+    pass
+
+
