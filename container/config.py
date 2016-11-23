@@ -13,7 +13,7 @@ import six
 
 from jinja2 import Environment, FileSystemLoader
 from collections import Mapping
-from .exceptions import AnsibleContainerConfigException,  AnsibleContainerConfigException
+from .exceptions import AnsibleContainerConfigException
 from .filters import LookupLoader, FilterLoader
 from .temp import MakeTempDir as make_temp_dir
 
@@ -214,55 +214,32 @@ class AnsibleContainerConfig(Mapping):
                 raise AnsibleContainerConfigException(u"JSON exception: %s" % str(exc))
         return config
 
+
+
+
     TOP_LEVEL_WHITELIST = [
         'version',
         'volumes',
-        'networks',
         'services',
         'defaults',
         'registries'
     ]
 
-    SERVICE_LEVEL_WHITELIST = [
-        'cap_add',
-        'cap_drop',
-        'command',
-        'container_name',
-        'entrypoint',
-        'environment',
-        'expose',
-        'extra_hosts',
-        'image',
-        'labels',
-        'links',
-        'options',
-        'ports',
-        'privileged',
-        'read_only',
-        'restart',
-        'stdin_open',
-        'tmpfs',
-        'user',
-        'volumes',
-        'working_dir'
-    ]
+    OPTIONS_KUBE_WHITELIST = []
+
+    OPTIONS_OPENSHIFT_WHITELIST = []
+
+    SUPPORTED_COMPOSE_VERSIONS = ['1', '2']
 
     def _validate_config(self, config):
         for top_level in config:
-            # check for unsupported top-level keys
             if top_level not in self.TOP_LEVEL_WHITELIST:
                 raise AnsibleContainerConfigException("invalid key '{0}'".format(top_level))
-            # check for unsupported service keys
-            if top_level == 'services':
-                for service in config['services']:
-                    for key in config['services'][service]:
-                        if key not in self.SERVICE_LEVEL_WHITELIST:
-                            raise AnsibleContainerConfigException("service '{0}' contains invalid key '{1}'".format(
-                                service,
-                                key
-                            ))
-            #TODO Validate options
-
+            if top_level == 'version':
+                if config['version'] not in self.SUPPORTED_COMPOSE_VERSIONS:
+                    raise AnsibleContainerConfigException("requested version is not supported")
+                if config['version'] == '1':
+                    logger.warning("Version '1' is deprecated. Consider upgrading to version '2'.")
 
     def __getitem__(self, item):
         return self._config.get(item)
