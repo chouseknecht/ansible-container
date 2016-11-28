@@ -20,103 +20,107 @@ Container Compose, the contents of ``container.yml``.
 Supported Directives
 --------------------
 
-The following tables provide a quick references to supported Compose directives. A directive followed by '**' is not part of
-Compose and is added by Ansible Container.
-
-Additional implementation details for supported directives appear below.
-
 .. |checkmark| unicode:: U+02713 .. check mark
+
+The following tables provide a quick references to supported Compose directives. All of the Compose directives for
+version 1, 2 and 2.1 are listed along with any directives added by Ansible Container. A |checkmark| in the *Supported?*
+column indicates that the directive is supported. In some cases the directive name links to specific implementation notes
+that provide details on how the directive is used.
 
 Top level directives
 ````````````````````
 
-=============== ======================================================== ============
-Directive       Definition                                               Supported?
-=============== ======================================================== ============
-networks        Create named, persistent networks
-registries**    Registry definitions
-services        Services included in the app                             |checkmark|
-version         Specifiy the version of Compose, '1' or '2'              |checkmark|
-volumes         Create named, persistent volumes                         |checkmark|
-=============== ======================================================== ============
+===================== ======================================================== ============
+Directive             Definition                                               Supported?
+===================== ======================================================== ============
+networks              Create named, persistent networks
+:ref:`registries`     Registry definitions
+services              Services included in the app                             |checkmark|
+version               Specifiy the version of Compose, '1' or '2'              |checkmark|
+volumes               Create named, persistent volumes                         |checkmark|
+===================== ======================================================== ============
 
 Service level directives
 ````````````````````````
 
-=============== ======================================================== ============
-Directive       Definition                                               Supported?
-=============== ======================================================== ============
-build           Run Dockerfile based build
-cap_add         Add container capabilities
-cap_drop        Drop container capabilities
-command         Command executed by the container at startup             |checkmark|
-container_name  Custom container name                                    |checkmark|
-cpuset          CPUs in which to allow execution
-cpu_shares      CPU shares (relative weight)
-cpu_quota       Limit the CPU CFS (Completely Fair Scheduler) quota
-devices         Map devices
-depends_on      Express dependency between services                      |checkmark|
-dev_overrides** Service level directives that apply only in development
-dns             Custom DNS servers
-dns_search      Custom DNS search
-domainname      Set the FQDN
-enable_ipv6     Enable IPv6 networking
-entrypoint      Override the default entrypoint                          |checkmark|
-env_file        Add environment variables from a file
-environment     Add environment variables                                |checkmark|
-expose          Expose ports without exposing them to the host           |checkmark|
-extends         Extend another service, in the current file or another,
-                optionally overriding configuration
-external_links  Link to containers started outside this project
-extra_hosts     Add hostname mappings                                    |checkmark|
-hostname        Set the container hostname
-image           The base image to start from                             |checkmark|
-ipc             Configure IPC settings
-isolation       Specify the container's isolation technology
-labels          Add meta data to the container                           |checkmark|
-links           Link services                                            |checkmark|
-link_local_ips  List of special, external IPs to link to
-logging         Logging configuration
-log_driver      Specify a log driver (V1 only)
-log_opt         Specify logging options as key:value pairs (V1 only)
-mac_address     Set the mac address
-mem_limit       Memory limit
-memswap_limit   Total memory limit (memory + swap)
-net             Network mode (V1 only)
-network_mode    Network mode
-networks        Networks to join
-options**       Cloud directives                                         |checkmark|
-pid             Sets the PID mode to the host PID mode, enabling between
-                container and host OS
-port            Expose ports                                             |checkmark|
-privileged      Run in privileged mode                                   |checkmark|
-read_only       Mount the container's file system as read only           |checkmark|
-restart         Restart policy to apply when a container exits           |checkmark|
-security_opt    Override default labeling scheme
-shm_size        Size of /dev/shm
-stdin_open      Keep stdin open                                          |checkmark|
-tty             Allocate a psuedo-tty
-stop_signal     Sets an alternative signal to stop the container
-tmpfs           Mount a temporary volume to the container                |checkmark|
-ulimits         Override the default ulimit
-user            Username or UID used to execute internal container       |checkmark|
-                processes
-volumes         Mounts paths or named volumes                            |checkmark|
-volume_driver   Specify a volume driver
-volumes_from    Mount one or more volumes from one container into        |checkmark|
-                another
-working_dir     Path to set as the working directory                     |checkmark|
-=============== ======================================================== ============
+===================== ======================================================== ============
+Directive             Definition                                               Supported?
+===================== ======================================================== ============
+build                 Run Dockerfile based build
+cap_add               Add container capabilities
+cap_drop              Drop container capabilities
+command               Command executed by the container at startup             |checkmark|
+container_name        Custom container name                                    |checkmark|
+cpuset                CPUs in which to allow execution
+cpu_shares            CPU shares (relative weight)
+cpu_quota             Limit the CPU CFS (Completely Fair Scheduler) quota
+devices               Map devices
+:ref:`depends_on`     Express dependency between services                      |checkmark|
+:ref:`dev_over`       Service level directives that apply only in development
+dns                   Custom DNS servers
+dns_search            Custom DNS search
+domainname            Set the FQDN
+enable_ipv6           Enable IPv6 networking
+entrypoint            Override the default entrypoint                          |checkmark|
+env_file              Add environment variables from a file
+environment           Add environment variables                                |checkmark|
+:ref:`expose`         Expose ports internally to other containers              |checkmark|
+extends               Extend another service, in the current file or another,
+                      optionally overriding configuration
+external_links        Link to containers started outside this project
+:ref:`extra_hosts`    Add hostname mappings                                    |checkmark|
+hostname              Set the container hostname
+image                 The base image to start from                             |checkmark|
+ipc                   Configure IPC settings
+isolation             Specify the container's isolation technology
+labels                Add meta data to the container                           |checkmark|
+:ref:`links`          Link services                                            |checkmark|
+link_local_ips        List of special, external IPs to link to
+logging               Logging configuration
+log_driver            Specify a log driver (V1 only)
+log_opt               Specify logging options as key:value pairs (V1 only)
+mac_address           Set the mac address
+mem_limit             Memory limit
+memswap_limit         Total memory limit (memory + swap)
+net                   Network mode (V1 only)
+network_mode          Network mode
+networks              Networks to join
+:ref:`options`        Cloud deployment directives                              |checkmark|
+pid                   Sets the PID mode to the host PID mode, enabling between
+                      container and host OS
+:ref:`ports`          Expose ports externally to the host                      |checkmark|
+privileged            Run in privileged mode                                   |checkmark|
+read_only             Mount the container's file system as read only           |checkmark|
+restart               Restart policy to apply when a container exits           |checkmark|
+security_opt          Override default labeling scheme
+shm_size              Size of /dev/shm
+stdin_open            Keep stdin open                                          |checkmark|
+tty                   Allocate a psuedo-tty
+stop_signal           Sets an alternative signal to stop the container
+tmpfs                 Mount a temporary volume to the container                |checkmark|
+ulimits               Override the default ulimit
+user                  Username or UID used to execute internal container       |checkmark|
+                      processes
+:ref: `volumes`       Mounts paths or named volumes                            |checkmark|
+volume_driver         Specify a volume driver
+:ref: `volumes_from`  Mount one or more volumes from one container into        |checkmark|
+                      another
+working_dir           Path to set as the working directory                     |checkmark|
+===================== ======================================================== ============
 
 Implementation
 --------------
 
 The following provides details about how specific directives are implemented.
 
+.. _depends_on:
+
 depends_on
 ``````````
 Express a dependency between services, causing services to be started in order. Supported by ``build`` and ``run`` commands,
 but will be ignored by ``shipit``.
+
+.. _dev_over:
 
 dev_overrides
 `````````````
@@ -148,6 +152,8 @@ The ``build`` and ``shipit`` commands completely ignore *dev_overrides*. When ``
 does not have the host's working directory mounted, and the container port 8000 is mapped to the host's port 8000. And
 likewise, the ``shipit`` command will create a service using port 8000, and will not create any volumes for the container.
 
+.. _expose:
+
 expose
 ``````
 
@@ -158,12 +164,16 @@ In the cloud, an exposed port translates to a service, and ``shipit`` will creat
 service will have the same name as the `container.yml` service, and it will listen on the specified port and forward requests
 to the same port on the pod.
 
+.. _extra_hosts:
+
 extra_hosts
 ```````````
 For ``build`` and ``run``, adds a hosts entry to the container.
 
 In the cloud, ``shipit`` will create an External IP service. See `Kubernetes external IPs <http://kubernetes.io/docs/user-guide/services/#external-ips for details>`_
 for details.
+
+.. _links:
 
 links
 `````
@@ -173,6 +183,29 @@ and ``run`` commands.
 
 In the cloud, *links* are not supported, and so they will be ignored by ``shipit``. However, containers can communicate
 using services, so to enable communication between two containers, add the *expose* directive. See *expose* above.
+
+.. _options:
+
+options
+```````
+
+Specify directives specific to cloud deployment. Used exclusively by the ``shipit`` command to impact how services are deployed.
+View :ref:`cloud_options` for a reference of options directives.
+
+.. _ports:
+
+ports
+`````
+Connects ports from the host to the container, allowing the container to receive external requests. This is supported by
+the ``build`` and ``run`` commands.
+
+The ``shipit`` command supports it as well by mapping the same functionality to the cloud. In the case of Kubernetes it creates
+a load balanced service that accepts external requests on the host port and relays them to the pod, which contains the
+container, on the container port. In the case of OpenShift it creates a route and service, where the route accepts external
+requests on the host port, and relays them to a service listening on the container port, which relays them to a pod also on
+the container port.
+
+.. _registries:
 
 registries
 ``````````
@@ -198,6 +231,8 @@ Use the following command to push images to the *google* registry:
      # Push images
      $ ansible-container push --push-to google
 
+.. _volumes:
+
 volumes
 ```````
 
@@ -215,6 +250,7 @@ which means:
 - It does not create persistent volumes
 - It does create persistent volume claims.
 
+.. _volumes_from:
 
 volumes_from
 ````````````
@@ -222,6 +258,8 @@ volumes_from
 Mount all the volumes from another service or container. Supported by ``build`` and ``run`` commands, but not supported
 in the cloud, and thus ignored by ``shipit``.
 
+
+.. _cloud_options:
 
 Cloud options
 -------------
@@ -251,17 +289,19 @@ can be added for each cloud. For example, the following shows directives being a
           openshift:
             replicas: 3
 
-Note that directives intended for OpenShift are added using an *openshift* section (or object), and a *kube* section
+.. note::
+
+Directives intended for OpenShift are added using an *openshift* section (or object), and a *kube* section
 for Kubernetes.
 
-The following table tracks the available directives:
+The following table lists the available directives:
 
 ======================== ======================================================================================================
 Directive                Definition
 ======================== ======================================================================================================
-persistent_volume_claims Define a persistent volume claim. See the persistent volume claims for more details.
+persistent_volume_claims Define a persistent volume claim. See :ref:`pvc` for more details.
 
-replicas                 Scale the servie by setting the he number of pods to create. Defaults to 1.
+replicas                 Scale the servie by setting the number of pods to create. Defaults to 1.
 runAsNonRoot             Set the runAsNonRoot option in the container's security context. Boolean. Defaults to false.
 runAsUser                The UID to run the entrypoint of the container process. Defaults to user specified in image metadata,
                          if unspecified.
@@ -270,11 +310,12 @@ seLinuxOptions           Set the `seLinuxOptions <http://kubernetes.io/docs/api-
 state                    Set to 'absent', if the service should not be deployed to the cloud. Defaults to 'present'.
 ======================== ======================================================================================================
 
+.. _pvc:
 
 Persistent volume claims
 ````````````````````````
 
-Docker named volumes map to persistent volume claims (PVCs) in the cloud. Consider the following ``container.yml`` example:
+Docker named volumes map to persistent volume claims (PVCs) in the cloud. Consider the following ``container.yml``:
 
 .. code-block:: yaml
 
@@ -295,25 +336,24 @@ Docker named volumes map to persistent volume claims (PVCs) in the cloud. Consid
     volumes:
        static-files: {}
 
-In the example the Compose *volumes* directives create a named volume called *static-files*, and the Docker volume gets
+In the above example the Compose *volumes* directives create a named volume called *static-files*, and the Docker volume gets
 created during the execution of the ``build`` and ``run`` commands. When ``shipit`` executes, it creates a volume called
 *static-files* that maps to a persistent volume claim, and it creates the persistent volume claim using the parameters
 specified in *options*. In this case the options are supplied for OpenShift.
 
 The following options can be defined for a persistent volume claim:
 
-======================== ========================================================================================================
+======================== =============================================================================================================
 Directive                Definition
-======================== ========================================================================================================
-annotations              Define a meta data annotation object.
+======================== =============================================================================================================
+annotations              Define a meta data annotation object. See the Class section of
+                         `Persistent Volume Claims <http://kubernetes.io/docs/user-guide/persistent-volumes/#persistentvolumeclaims>`_
 access_modes             A list of valid `access modes <http://kubernetes.io/docs/user-guide/persistent-volumes/#access-modes>`_.
 claim_name               The meta data name to give the PVC. Required.
-match_labels             Filter matching volumes by specifying labels that the volume must have.
-match_expressions        Filter matching volumes by specifying key, list of values, and operator that relates the key and values.
+match_labels             Filter matching volumes by specifying labels the volume must have.
+match_expressions        Filter matching volumes by specifying key, list of values, and an operator that relates the key and values.
 persistent_volume_name   The name of a specific persistent volume to use.
 requested_storage        The amount of storage being requested. Defaults to 1Gi.
                          See `compute resources <http://kubernetes.io/docs/user-guide/compute-resources/>`_ for abbreviations.
-volume_name              The name of Docker volume. Required.
-======================== ========================================================================================================
-
-
+volume_name              The name of the Docker volume. Required.
+======================== =============================================================================================================
