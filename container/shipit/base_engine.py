@@ -17,6 +17,34 @@ from .utils import create_path, represent_odict
 from ..utils import jinja_render_to_temp
 
 
+class BaseShipItObject(object):
+    def __init__(self, config=None, project_name=None):
+        self.project_name = project_name
+        self.config = config
+
+    def get_template(self):
+        return self._get_template_or_task(request_type="config")
+
+    def get_task(self):
+        return self._get_template_or_task(request_type="task")
+
+    def _get_template_or_task(self, request_type="task"):
+        '''
+        Read the container.yml configuration, and for each service create a configuration template or
+        playbook task.
+
+        :return: list of configuration templates or playbook tasks
+        '''
+        raise NotImplementedError()
+
+    def _create(self, name, request_type, service):
+        '''
+        Generate a configuration template or playbook task.
+        :param request_type:
+        '''
+        raise NotImplementedError()
+
+
 class BaseShipItEngine(object):
     name = None
 

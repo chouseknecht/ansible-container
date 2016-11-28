@@ -10,6 +10,7 @@ import shlex
 from collections import OrderedDict
 from six import string_types
 
+from ..base_engine import BaseShipItObject
 from container.exceptions import AnsibleContainerMissingPersistentVolumeClaim
 
 logger = logging.getLogger(__name__)
@@ -17,38 +18,29 @@ logger = logging.getLogger(__name__)
 DOCKER_VOL_PERMISSIONS = ['rw', 'ro', 'z', 'Z']
 
 
-class Deployment(object):
+class Deployment(BaseShipItObject):
 
-    def __init__(self, config=None, project_name=None):
-        self.project_name = project_name
-        self.config = config
-
-    def get_template(self, service_names=None):
-        return self._get_template_or_task(request_type="config", service_names=service_names)
-
-    def get_task(self, service_names=None):
-        return self._get_template_or_task(request_type="task", service_names=service_names)
-
-    def _get_template_or_task(self, request_type="task", service_names=None):
+    def _get_template_or_task(self, request_type="task"):
         templates = []
         for name, service in self.config.get('services', {}).items():
-            new_template = self._create(request_type, name, service)
+            new_template = self._create(name, request_type, service)
             if new_template:
                 templates.append(new_template)
         return templates
 
-    def _create(self, type, name, service):
+    def _create(self, name, request_type, service):
         '''
         Creates an Openshsift deployment template or playbook task.
+        :param request_type:
         '''
         template = {}
-        container, volumes, pod = self._service_to_container(name, service, type=type)
+        container, volumes, pod = self._service_to_container(name, service, request_type)
         labels = dict(
             app=self.project_name,
             service=name
         )
 
-        if type == 'config':
+        if request_type == 'config':
             state = 'present'
             if pod.get('state'):
                 state = pod.pop('state')
@@ -103,14 +95,14 @@ class Deployment(object):
 
         return template
 
-    def _service_to_container(self, name, service, type="task"):
+    def _service_to_container(self, name, service, request_type="task"):
         '''
         Turn a service into a container and set of volumes. Maps Docker run directives
         to the Kubernetes container spec: http://kubernetes.io/docs/api-reference/v1/definitions/#_v1_container
 
         :param name:str: Name of the service
         :param service:dict: Configuration
-        :param type: 'task' or 'config'
+        :param request_type: 'task' or 'config'
         :return: (container, volumes, pod)
         '''
 
@@ -237,14 +229,14 @@ class Deployment(object):
                     container['command'] = value
             elif key == 'environment':
                 expanded_vars = self._expand_env_vars(value)
-                if type == 'config':
+                if request_type == 'config':
                     container['env'] = expanded_vars
                 else:
                     container['env'] = self._env_vars_to_task(expanded_vars)
             elif key in ('ports', 'expose'):
                 if not container.get('ports'):
                     container['ports'] = []
-                self._get_ports(value, type, container['ports'])
+                self._get_ports(value, request_type, container['ports'])
             elif key == 'privileged':
                 container['securityContext']['privileged'] = value
             elif key == 'read_only':

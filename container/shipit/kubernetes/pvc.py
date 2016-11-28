@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class Pvc(BaseShipItObject):
 
-    def _get_template_or_task(self, request_type="task", service_names=None):
+    def _get_template_or_task(self, request_type="task"):
         templates = []
         for name, service in self.config.get('services', {}).items():
             new_templates = self._create(name, request_type, service)
@@ -59,24 +59,23 @@ class Pvc(BaseShipItObject):
                     template['spec']['volumeName'] = claim['persistent_volume_name']
             else:
                 template = dict(
-                    oso_pvc=OrderedDict(
-                        project_name=self.project_name,
+                    kube_pvc=OrderedDict(
                         name=claim['claim_name'],
                         state='present',
                     )
                 )
                 if claim.get('access_modes'):
-                    template['oso_pvc']['access_modes'] = claim['access_modes']
+                    template['kube_pvc']['access_modes'] = claim['access_modes']
                 if claim.get('requested_storage'):
-                    template['oso_pvc']['requested_storage'] = claim['requested_storage']
+                    template['kube_pvc']['requested_storage'] = claim['requested_storage']
                 if claim.get('annotations'):
-                    template['oso_pvc']['annotations'] = claim['annotations']
+                    template['kube_pvc']['annotations'] = claim['annotations']
                 if claim.get('match_labels'):
-                    template['oso_pvc']['match_labels'] = claim['match_labels']
+                    template['kube_pvc']['match_labels'] = claim['match_labels']
                 if claim.get('match_expressions'):
-                    template['oso_pvc']['match_expressions'] = claim['match_expressions']
+                    template['kube_pvc']['match_expressions'] = claim['match_expressions']
                 if claim.get('persistent_volume_name'):
-                    template['oso_pvc']['volume_name'] = claim['persistent_volume_name']
+                    template['kube_pvc']['volume_name'] = claim['persistent_volume_name']
 
             templates.append(template)
         return templates

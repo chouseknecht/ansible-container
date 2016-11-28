@@ -7,12 +7,12 @@
 
 DOCUMENTATION = '''
 
-module: oso_pvc
+module: kube_pvc
 
 short_description: Create or remove a persistent volume claim.
 
 description:
-  - Create or remove a persistent volume claim on an OpenShift cluster by setting the C(state) to I(present) or I(absent).
+  - Create or remove a persistent volume claim on a Kubernetes cluster by setting the C(state) to I(present) or I(absent).
   - The module is idempotent and will not replace an existing PVC unless the C(replace) option is passed.
   - Supports check mode. Use check mode to view a list of actions the module will take.
 
@@ -48,7 +48,7 @@ LOGGING = (
             }
         },
         'loggers': {
-            'oso_pvc': {
+            'kube_pvc': {
                 'handlers': ['file'],
                 'level': 'INFO',
             },
@@ -69,12 +69,11 @@ LOGGING = (
 )
 
 
-class OSOPvcManager(object):
+class KubePvcManager(object):
 
     def __init__(self):
 
         self.arg_spec = dict(
-            project_name=dict(type='str', aliases=['namespace'], required=True),
             state=dict(type='str', choices=['present', 'absent'], default='present'),
             name=dict(type='str', required=True),
             annotations=dict(type='dict',),
@@ -88,7 +87,6 @@ class OSOPvcManager(object):
         self.module = AnsibleModule(self.arg_spec,
                                     supports_check_mode=True)
 
-        self.project_name = None
         self.state = None
         self.name = None
         self.annotations = None
@@ -102,27 +100,20 @@ class OSOPvcManager(object):
         self.debug = self.module._debug
 
     def exec_module(self):
-
         for key in self.arg_spec:
             setattr(self, key, self.module.params.get(key))
 
         if self.debug:
             LOGGING['loggers']['container']['level'] = 'DEBUG'
-            LOGGING['loggers']['oso_pvc']['level'] = 'DEBUG'
+            LOGGING['loggers']['kube_pvc']['level'] = 'DEBUG'
         logging.config.dictConfig(LOGGING)
 
-        self.api = OriginAPI(self.module)
+        self.api = KubeAPI(self.module)
 
         actions = []
         changed = False
         claims = dict()
         results = dict()
-
-        project_switch = self.api.set_project(self.project_name)
-        if not project_switch:
-            actions.append("Create project %s" % self.project_name)
-            if not self.check_mode:
-                self.api.create_project(self.project_name)
 
         if self.state == 'present':
             pvc = self.api.get_resource('pvc', self.name)
@@ -201,11 +192,11 @@ class OSOPvcManager(object):
 
 
 #The following will be included by `ansble-container shipit` when cloud modules are copied into the role library path.
-#include--> oso_api.py
+#include--> kube_api.py
 
 
 def main():
-    manager = OSOPvcManager()
+    manager = KubePvcManager()
     manager.exec_module()
 
 if __name__ == '__main__':
