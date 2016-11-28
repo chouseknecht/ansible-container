@@ -146,8 +146,7 @@ class BaseShipItEngine(object):
             logger.debug("Backing up tasks/main.yml to main_%s.yml" % now)
             os.rename(tasks_file, new_tasks_file)
 
-        #TODO: limit the number of backups kept?
-
+        #TODO: limit the number of backups?
 
     def create_role(self, tasks):
         '''

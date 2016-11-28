@@ -116,7 +116,6 @@ class Deployment(object):
         pod = {}
 
         IGNORE_DIRECTIVES = [
-            'aliases',
             'build',
             'expose',
             'labels',
@@ -384,38 +383,24 @@ class Deployment(object):
             result[var['name']] = var['value']
         return result
 
-    def _expand_env_vars(self, env_variables):
+    @staticmethod
+    def _expand_env_vars(env_variables):
         '''
-        Turn containier environment attribute into dictionary of name/value pairs.
+        Turn container environment attribute into dictionary of name/value pairs.
 
         :param env_variables: container env attribute value
         :type env_variables: dict or list
         :return: dict
         '''
-        def r(x, y):
-            if re.match('shipit_', x, flags=re.I):
-                return dict(name=re.sub('^shipit_', '', x, flags=re.I), value=self._resolve_resource(y))
-            return dict(name=x, value=y)
-
         results = []
         if isinstance(env_variables, dict):
             for key, value in env_variables.items():
-                results.append(r(key, value))
+                results.append({u'name': key, u'value': value})
         elif isinstance(env_variables, list):
             for envvar in env_variables:
-                parts = envvar.split('=')
+                parts = envvar.split('=', 1)
                 if len(parts) == 1:
-                    results.append(dict(name=re.sub('^shipit_', '', parts[0], flags=re.I), value=None))
+                    results.append({u'name': parts[0], u'value': None})
                 elif len(parts) == 2:
-                    results.append(r(parts[0], parts[1]))
+                    results.append({u'name': parts[0], u'value': parts[1]})
         return results
-
-    def _resolve_resource(self, path):
-        result = path
-        if '/' in path:
-            # TODO - support other resource types?
-            res_type, res_name = path.split('/')
-            if res_type == 'service':
-                parts = res_name.split(':')
-                result = u"{{ %s_service.spec.clusterIP }}:%s" % (parts[0].replace('-', '_'), parts[1])
-        return result

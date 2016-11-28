@@ -6,8 +6,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-import re
-
 from collections import OrderedDict
 from six import string_types
 
