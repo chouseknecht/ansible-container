@@ -92,6 +92,15 @@ class BaseShipItEngine(object):
         """
         raise NotImplementedError()
 
+    def get_config(self):
+        """
+        Returns a dict of containing a set of key: list() pairs where each key is a type of template
+        (i.e. deployments, routes, services, pvcs, etc.), and each list is the set of templates.
+
+        :return: dict
+        """
+        raise NotImplementedError()
+
     def _copy_modules(self):
         '''
         Copy cloud ansible modules to role library path.

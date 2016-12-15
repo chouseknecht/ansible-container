@@ -55,5 +55,10 @@ class ShipItEngine(BaseShipItEngine):
 
         return dest_path
 
-
+    def get_config(self):
+        return {
+            u'services': Service(config=self.config, project_name=self.project_name).get_template(),
+            u'deployments': Deployment(config=self.config, project_name=self.project_name).get_template(),
+            u'pvcs': Pvc(config=self.config, project_name=self.project_name).get_template()
+        }
 
