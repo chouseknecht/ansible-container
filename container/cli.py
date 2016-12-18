@@ -38,6 +38,11 @@ LOGGING = {
                 'handlers': ['console'],
                 'level': 'WARNING',
                 'propagate': False
+            },
+            'kubeshift': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propogate': True
             }
         },
         'root': {
@@ -127,6 +132,15 @@ def subcmd_run_parser(parser, subparser):
     subparser.add_argument('-o', '--remove-orphans', action='store_true',
                            help=u'Remove containers for services not defined in container.yml',
                            default=False, dest='remove_orphans')
+    # kubeshift options
+    subparser.add_argument('--context-name', action='store',
+                           help=u'Set the cluster context', dest='context_name')
+    subparser.add_argument('--namespace', action='store',
+                           help=u'Set the cluster namespace', dest='namespace')
+    subparser.add_argument('--cluster-type', action='store',
+                           help=u"Set to one of: 'kube', 'openshift'. Defaults to 'openshift'.",
+                           default='openshift', dest='cluster_type')
+
     subcmd_common_parsers(parser, subparser, 'run')
 
 def subcmd_stop_parser(parser, subparser):

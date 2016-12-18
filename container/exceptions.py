@@ -59,4 +59,6 @@ class AnsibleContainerConfigException(Exception):
 class AnsibleContainerMissingPersistentVolumeClaim(Exception):
     pass
 
+class AnsibleContainerKubeShiftException(Exception):
+    pass
 
