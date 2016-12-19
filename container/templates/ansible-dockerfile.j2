@@ -19,12 +19,15 @@ RUN pip install -q --no-cache-dir -e git+https://github.com/ansible/ansible.git@
 RUN pip install -q --no-cache-dir ruamel.yaml
 
 RUN mkdir -p /etc/ansible/roles
+RUN mkdir -p /root/.ssh && \
+    chmod 700 /root/.ssh
 
 ADD builder.sh /usr/local/bin/builder.sh
 ADD ac_galaxy.py /usr/local/bin/ac_galaxy.py
 ADD wait_on_host.py /usr/local/bin/wait_on_host.py
 ADD ansible-container-inventory.py /etc/ansible/ansible-container-inventory.py
 ADD ansible.cfg /etc/ansible/ansible.cfg
+ADD ssh_config /root/.ssh/config
 
 # In 9deb3eb we moved to /usr/bin/ansible-playbook
 # Let's ease the transition on people using <9deb3eb code
