@@ -77,7 +77,7 @@ def subcmd_common_parsers(parser, subparser, cmd):
                                help=u'Specify a local path containing roles you want to '
                                     u'use in the builder container.')
 
-def subcmd_init_parser(parser, subparser):
+def subcmd_init_parser(parser, subparser, **kwargs):
     subparser.add_argument('--server', '-s', action='store',
                            default='https://galaxy.ansible.com/',
                            help=u'Use a different Galaxy server URL')
@@ -86,7 +86,7 @@ def subcmd_init_parser(parser, subparser):
                                 u'blank project from an Ansible Container project '
                                 u'from Ansible Galaxy.')
 
-def subcmd_build_parser(parser, subparser):
+def subcmd_build_parser(parser, subparser, **kwargs):
     subparser.add_argument('--flatten', action='store_true',
                            help=u'By default, Ansible Container will add a single '
                                 u'layer to your base images. Specify this to squash '
@@ -120,7 +120,7 @@ def subcmd_build_parser(parser, subparser):
                                 u'caution.', default=u'', nargs='*')
     subcmd_common_parsers(parser, subparser, 'build')
 
-def subcmd_run_parser(parser, subparser):
+def subcmd_run_parser(parser, subparser, **kwargs):
     subparser.add_argument('service', action='store',
                            help=u'The specific services you want to run',
                            nargs='*')
@@ -132,18 +132,10 @@ def subcmd_run_parser(parser, subparser):
     subparser.add_argument('-o', '--remove-orphans', action='store_true',
                            help=u'Remove containers for services not defined in container.yml',
                            default=False, dest='remove_orphans')
-    # kubeshift options
-    subparser.add_argument('--context-name', action='store',
-                           help=u'Set the cluster context', dest='context_name')
-    subparser.add_argument('--namespace', action='store',
-                           help=u'Set the cluster namespace', dest='namespace')
-    subparser.add_argument('--cluster-type', action='store',
-                           help=u"Set to one of: 'kube', 'openshift'. Defaults to 'openshift'.",
-                           default='openshift', dest='cluster_type')
-
     subcmd_common_parsers(parser, subparser, 'run')
 
-def subcmd_stop_parser(parser, subparser):
+
+def subcmd_stop_parser(parser, subparser, **kwargs):
     subparser.add_argument('service', action='store',
                            help=u'The specific services you want to stop',
                            nargs='*')
@@ -151,15 +143,15 @@ def subcmd_stop_parser(parser, subparser):
                            help=u'Force stop running containers',
                            dest='force')
 
-def subcmd_restart_parser(parser, subparser):
+def subcmd_restart_parser(parser, subparser, **kwargs):
     subparser.add_argument('service', action='store',
                            help=u'The specific services you want to restart',
                            nargs='*')
 
-def subcmd_help_parser(parser, subparser):
+def subcmd_help_parser(parser, subparser, **kwargs):
     return
 
-def subcmd_push_parser(parser, subparser):
+def subcmd_push_parser(parser, subparser, **kwargs):
     subparser.add_argument('--username', action='store',
                            help=u'If authentication with the registry is required, provide a valid username.',
                            dest='username', default=None)
@@ -177,29 +169,54 @@ def subcmd_push_parser(parser, subparser):
                            dest='push_to', default=None)
     subcmd_common_parsers(parser, subparser, 'push')
 
-def subcmd_version_parser(parser, subparser):
+def subcmd_version_parser(parser, subparser, **kwargs):
     return
 
-def subcmd_shipit_parser(parser, subparser):
-    se_subparser = subparser.add_subparsers(title='shipit-engine', dest='shipit_engine')
+def subcmd_shipit_parser(parser, subparser, **kwargs):
+    engine = kwargs.get('engine', 'docker')
+    se_subparser = subparser.add_subparsers(title='shipit', dest='shipit_engine')
     for engine_name, engine in AVAILABLE_SHIPIT_ENGINES.items():
         engine_parser = se_subparser.add_parser(engine_name, help=engine['help'])
         engine_obj = load_shipit_engine(engine['cls'], base_path=os.getcwd())
         engine_obj.add_options(engine_parser)
+        if engine == 'kubeshift':
+            engine_parser.usage = 'ansible-container --engine=kubeshift shipit {kube, openshift} [options] {up,down}'
+            cmd_parser = engine_parser.add_subparsers(title='command', dest='kubeshift_cmd')
+            cmd_parser.add_parser('up', help="Start the application")
+            cmd_parser.add_parser('down', help="Stop the application")
+    if engine == 'kubeshift':
+        subparser.usage = 'ansible-container --engine=kubeshift shipit [options] {kube, openshift}'
+        subparser.add_argument('--context-name', action='store',
+                               help=u'Set the config context.', dest='context_name')
+        subparser.add_argument('--namespace', action='store',
+                               help=u'Set the config namespace, or project name.', dest='namespace')
     subcmd_common_parsers(parser, subparser, 'shipit')
 
-def subcmd_install_parser(parser, subparser):
+def subcmd_install_parser(parser, subparser, **kwargs):
     subparser.add_argument('roles', nargs='+', action='store')
 
+def get_requested_engine():
+    engine = 'docker'
+    for arg in sys.argv:
+        if 'kubeshift' in arg:
+            engine = 'kubeshift'
+    return engine
+
 def commandline():
-    parser = argparse.ArgumentParser(description=u'Build, orchestrate, run, and '
-                                                 u'ship Docker containers with '
-                                                 u'Ansible playbooks')
+    container_engine = get_requested_engine()
+
+    engine_help = '''
+    Select your container engine and orchestrator. Defaults to docker.
+    Include --engine=<name> to view engine specific help for a given command.
+    '''
+
+    parser = argparse.ArgumentParser(description=u"Build, orchestrate, run, and ship "
+                                                 u"Docker containers using Ansible playbooks.")
     parser.add_argument('--debug', action='store_true', dest='debug',
                         help=u'Enable debug output', default=False)
     parser.add_argument('--engine', action='store', dest='engine_name',
-                        help=u'Select your container engine and orchestrator',
-                        default='docker')
+                        help=unicode(engine_help),
+                        default='docker', choices=('docker', 'kubeshift'))
     parser.add_argument('--project', '-p', action='store', dest='base_path',
                         help=u'Specify a path to your project. Defaults to '
                              u'current working directory.', default=os.getcwd())
@@ -212,7 +229,7 @@ def commandline():
     for subcommand in AVAILABLE_COMMANDS:
         logger.debug('Registering subcommand %s', subcommand)
         subparser = subparsers.add_parser(subcommand, help=AVAILABLE_COMMANDS[subcommand])
-        globals()['subcmd_%s_parser' % subcommand](parser, subparser)
+        globals()['subcmd_%s_parser' % subcommand](parser, subparser, engine=container_engine)
 
     args = parser.parse_args()
 

@@ -59,9 +59,7 @@ class BaseShipItEngine(object):
         """
         Given an argument subparser, add to it the arguments and options
         this engine allows.
-
         https://docs.python.org/2/library/argparse.html#sub-commands
-
         :param subparser: An argparse.ArgumentSubparser
         :return: None
         """

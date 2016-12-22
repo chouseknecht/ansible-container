@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import logging
 import json
 
-from ..engine import BaseEngine
+from ..docker.engine import Engine as DockerEngine
 from ..utils import load_shipit_engine
 from ..exceptions import AnsibleContainerKubeShiftException
 
@@ -21,8 +21,7 @@ except Exception as exc:
 logger = logging.getLogger(__name__)
 
 
-class Engine(BaseEngine):
-
+class Engine(DockerEngine):
     engine_name = 'kubeshift'
     orchestrator_name = ''
     builder_container_img_name = 'ansible-container'
@@ -42,7 +41,7 @@ class Engine(BaseEngine):
         if params.get('context_name'):
             kube_config.set_current_context(self.params.get('context_name'))
         self.namespace = params.get('namespace', DEFAULT_NAMESPACE)
-        if params.get('cluster_type') not in ('openshift', 'kube'):
+        if params.get('cluster_type') not in ('openshift', 'kube', 'kubernetes'):
             raise AnsibleContainerKubeShiftException(u"Invalid cluster type. Expected one of: 'openshift', 'kube'")
         if params.get('cluster_type') == 'openshift':
             self._client = OpenshiftClient(kube_config)
@@ -50,18 +49,16 @@ class Engine(BaseEngine):
         elif params.get('cluster_type') in ('kube', 'kubernetes'):
             self._client = KubernetesClient(kube_config)
             self._shipit_cls = 'kube'
+
+        # Fix DeploymentConfig endpoint
+        dc_endpoint = self._client.api_resources['v1']['DeploymentConfig']
+        if dc_endpoint:
+            self._client.api_resources['v1']['DeploymentConfig'] = dc_endpoint.replace('generatedeploymentconfig',
+                                                                                       'deploymentconfig')
+        logger.info("Using context {}".format(self._client.kubeconfig.current_context))
+        logger.info("Using namespace {}".format(self.namespace))
         logger.debug("API resources:")
         logger.debug(json.dumps(self._client.api_resources, indent=4))
-
-
-    def all_hosts_in_orchestration(self):
-        """
-        List all hosts being orchestrated by the compose engine.
-
-        :return: list of strings
-        """
-        services = self.config.get('services')
-        return list(services.keys()) if services else []
 
     def orchestrate(self, operation, temp_dir, hosts=[], context={}):
         '''
@@ -171,7 +168,7 @@ class Engine(BaseEngine):
         for deployment in deployments:
             name = deployment['metadata']['name']
             try:
-                existing_deployment = self._client.deployments(namespace=self.namespace).by_name(name)
+                existing_deployment = self._client.deploymentconfigs(namespace=self.namespace).by_name(name)
             except KubeRequestError:
                 logger.debug("Creating deployment {}".format(name))
                 logger.debug(json.dumps(deployment, indent=4))
