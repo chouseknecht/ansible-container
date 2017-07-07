@@ -16,9 +16,11 @@ import json
 import os
 import re
 import shutil
-import six
 import sys
 import tarfile
+
+from ruamel.yaml.comments import CommentedMap
+from six import reraise, iteritems, string_types
 
 try:
     import httplib as StatusCodes
@@ -107,7 +109,7 @@ class Engine(BaseEngine):
         'domainname', 'hostname', 'ipc', 'mac_address', 'mem_limit',
         'memswap_limit', 'mem_swappiness', 'mem_reservation', 'oom_score_adj',
         'privileged', 'read_only', 'restart', 'shm_size', 'stdin_open', 'tty',
-        'user', 'working_dir', 'secrets',
+        'user', 'working_dir'
     )
     display_name = u'Docker\u2122 daemon'
 
@@ -216,9 +218,6 @@ class Engine(BaseEngine):
                     u"Conductor container can't be found. Run "
                     u"`ansible-container build` first")
 
-        serialized_params = base64.b64encode(json.dumps(params).encode("utf-8")).decode()
-        serialized_config = base64.b64encode(json.dumps(ordereddict_to_list(config)).encode("utf-8")).decode()
-
         conductor_settings = config.get('settings', {}).get('conductor', {})
 
         if not volumes:
@@ -239,6 +238,25 @@ class Engine(BaseEngine):
         if conductor_settings.get('volumes'):
             for volume in conductor_settings['volumes']:
                 _add_volume(volume)
+
+        pswd_file = params.get('vault_password_file') or config.get('settings', {}).get('vault_password_file')
+        if pswd_file:
+            pswd_file_path = os.path.normpath(os.path.abspath(os.path.expanduser(pswd_file)))
+            volumes[pswd_file_path] = {
+                'bind': pswd_file_path,
+                'mode': 'ro'
+            }
+            params['vault_password_file'] = pswd_file_path
+
+        vaults = params.get('vault_files') or config.get('settings', {}).get('vault_files')
+        if vaults:
+            vault_paths = [os.path.normpath(os.path.abspath(os.path.expanduser(v))) for v in vaults]
+            for vault_path in vault_paths:
+                volumes[vault_path] = {
+                    'bind': vault_path,
+                    'mode': 'ro'
+                }
+            params['vault_files'] = vault_paths
 
         permissions = 'ro' if command != 'install' else 'rw'
         volumes[base_path] = {'bind': '/src', 'mode': permissions}
@@ -305,6 +323,9 @@ class Engine(BaseEngine):
         if not engine_name:
             engine_name = __name__.rsplit('.', 2)[-2]
 
+        serialized_params = base64.b64encode(json.dumps(params).encode("utf-8")).decode()
+        serialized_config = base64.b64encode(json.dumps(ordereddict_to_list(config)).encode("utf-8")).decode()
+
         run_kwargs = dict(
             name=self.container_name_for_service('conductor'),
             command=['conductor',
@@ -337,7 +358,7 @@ class Engine(BaseEngine):
                 raise exceptions.AnsibleContainerConductorException(
                     u"Can't start conductor container, another conductor for "
                     u"this project already exists or wasn't cleaned up.")
-            six.reraise(*sys.exc_info())
+            reraise(*sys.exc_info())
         else:
             log_iter = container_obj.logs(stdout=True, stderr=True, stream=True)
             mux = logmux.LogMultiplexer()
@@ -580,7 +601,24 @@ class Engine(BaseEngine):
         image_obj.tag(self.image_name_for_service(service_name), 'latest')
 
     @conductor_only
-    def generate_orchestration_playbook(self, url=None, namespace=None, **kwargs):
+    def _get_top_level_secrets(self):
+        """
+        Convert the top-level 'secrets' directive to the Docker format
+        :return: secrets dict
+        """
+        top_level_secrets = dict()
+        if self.secrets:
+            for secret, secret_definition in iteritems(self.secrets):
+                if isinstance(secret_definition, dict):
+                    for key, value in iteritems(secret_definition):
+                        name = '{}_{}'.format(secret, key)
+                        top_level_secrets[name] = dict(external=True)
+                elif isinstance(secret_definition, string_types):
+                    top_level_secrets[secret] = dict(external=True)
+        return top_level_secrets
+
+    @conductor_only
+    def generate_orchestration_playbook(self, url=None, namespace=None, vault_files=None, **kwargs):
         """
         Generate an Ansible playbook to orchestrate services.
         :param url: registry URL where images will be pulled from
@@ -620,19 +658,49 @@ class Engine(BaseEngine):
             for extra in self.COMPOSE_WHITELIST:
                 if extra in service:
                     service_definition[extra] = service[extra]
+
+            if service.get(u'secrets'):
+                service_secrets = []
+                for secret, secret_engines in iteritems(service[u'secrets']):
+                    if secret_engines.get(u'docker'):
+                        service_secrets += secret_engines[u'docker']
+                if service_secrets:
+                    service_definition[u'secrets'] = service_secrets
+
             logger.debug(u'Adding new service to definition',
                          service=service_name, definition=service_definition)
             service_def[service_name] = service_definition
 
         tasks = []
+        if self.secrets:
+            # Add docker_secret tasks
+            for state in (u'start', u'destroy'):
+                for secret, secret_definition in iteritems(self.secrets):
+                    task_params = dict()
+                    if isinstance(secret_definition, dict):
+                        for key, value in iteritems(secret_definition):
+                            name = u'{}_{}'.format(secret, key)
+                            task_params[u'name'] = name
+                            task_params[u'data'] = u'"{{ ' + value + u' }}"'
+                    elif isinstance(secret_definition, string_types):
+                        task_params[u'name'] = secret
+                        task_params[u'data'] = u'"{{ ' + secret_definition + u' }}"'
+                    task_params[u'state'] = u'present' if state == u'start' else u'absent'
+                    tasks.append({
+                        u'docker_secret': task_params,
+                        u'tags': [state]
+                    })
+        top_level_secrets = self._get_top_level_secrets()
         for desired_state in states:
             task_params = {
                 u'project_name': self.project_name,
                 u'definition': {
-                    u'version': u'2',
+                    u'version': u'3.1' if top_level_secrets else u'2',
                     u'services': service_def,
                 }
             }
+            if self.secrets:
+                task_params[u'definition'][u'secrets'] = top_level_secrets
             if self.volumes:
                 task_params[u'definition'][u'volumes'] = dict(self.volumes)
 
@@ -648,11 +716,15 @@ class Engine(BaseEngine):
 
             tasks.append({u'docker_service': task_params, u'tags': [desired_state]})
 
-        playbook = [{
-            u'hosts': u'localhost',
-            u'gather_facts': False,
-            u'tasks': tasks,
-        }]
+        # Construct the play. CommentedMap() respects the order, and works with ruamel
+        playbook = [CommentedMap([
+            (u'name', 'Deploy {}'.format(self.project_name)),
+            (u'hosts', u'localhost'),
+            (u'gather_facts', False)
+        ])]
+        if vault_files:
+            playbook[0][u'vars_files'] = [os.path.normpath(os.path.abspath(v)) for v in vault_files]
+        playbook[0][u'tasks'] = tasks
 
         for service in list(self.services.keys()) + ['conductor']:
             image_name = self.image_name_for_service(service)
