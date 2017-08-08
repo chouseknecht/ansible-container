@@ -26,6 +26,10 @@
 
 - include: includes/show-output.yml output_file=./task.output registered_output="{{ output }}"
 
+- name: Wait for containers to start
+  wait_for:
+    timeout: 15
+
 - name: Wait until built containers are running
   docker_container:
     name: "test{{ item.name }}_{{ item.name }}_1"
