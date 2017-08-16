@@ -370,6 +370,14 @@ class K8sBaseDeploy(object):
                     container[key] = value
             return container, volumes
 
+        def _update_volumes(existing_volumes, new_volumes):
+            existing_names = {}
+            for vol in existing_volumes:
+                existing_names[vol['name']] = 1
+            for vol in new_volumes:
+                if vol['name'] not in existing_names:
+                    existing_volumes.append(vol)
+
         templates = CommentedSeq()
         for name, service_config in iteritems(self._services):
             containers = []
@@ -380,11 +388,11 @@ class K8sBaseDeploy(object):
                     cname = "{}-{}".format(name, c['container_name'])
                     k8s_container, k8s_volumes, = _service_to_k8s_container(name, c, container_name=cname)
                     containers.append(k8s_container)
-                    volumes += k8s_volumes
+                    _update_volumes(volumes, k8s_volumes)
             else:
                 k8s_container, k8s_volumes = _service_to_k8s_container(name, service_config)
                 containers.append(k8s_container)
-                volumes += k8s_volumes
+                _update_volumes(volumes, k8s_volumes)
 
             if service_config.get(self.CONFIG_KEY):
                 for key, value in iteritems(service_config[self.CONFIG_KEY]):

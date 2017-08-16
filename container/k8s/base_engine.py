@@ -142,6 +142,7 @@ class K8sBaseEngine(DockerEngine):
         :param settings: settings dict from container.yml
         :param pull_from_url: if url to pull from is different than url
         :return: playbook dict
+        """
 
         def _update_service(service_name, service_config):
             if url and namespace:
