@@ -392,7 +392,7 @@ class K8sBaseDeploy(object):
             else:
                 k8s_container, k8s_volumes = _service_to_k8s_container(name, service_config)
                 containers.append(k8s_container)
-                _update_volumes(volumes, k8s_volumes)
+                volumes += k8s_volumes
 
             if service_config.get(self.CONFIG_KEY):
                 for key, value in iteritems(service_config[self.CONFIG_KEY]):
