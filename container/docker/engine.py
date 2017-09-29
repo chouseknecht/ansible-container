@@ -136,6 +136,7 @@ class Engine(BaseEngine, DockerSecretsMixin):
     CAP_RUN = True
     CAP_VERSION = True
     CAP_SIM_SECRETS = True
+    CAP_SIM_CONFIG = True
 
     COMPOSE_WHITELIST = (
         'links', 'depends_on', 'cap_add', 'cap_drop', 'command', 'devices',
@@ -199,6 +200,10 @@ class Engine(BaseEngine, DockerSecretsMixin):
     @property
     def secrets_mount_path(self):
         return os.path.join(os.sep, 'docker', 'secrets')
+
+    @property
+    def config_mount_path(self):
+        return os.path.join(os.sep, 'docker', 'config')
 
     def container_name_for_service(self, service_name):
         return u'%s_%s' % (self.project_name, service_name)

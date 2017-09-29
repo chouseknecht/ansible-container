@@ -33,6 +33,7 @@ class BaseEngine(object):
     CAP_RUN = False
     CAP_VERSION = False
     CAP_SIM_SECRETS = False
+    CAP_SIM_CONFIG = False
 
     def __init__(self, project_name, services, debug=False, selinux=True, devel=False, **kwargs):
         self.project_name = project_name

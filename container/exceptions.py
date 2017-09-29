@@ -79,3 +79,6 @@ class AnsibleContainerImportDirDockerException(AnsibleContainerException):
 
 class AnsibleContainerImportExistsException(AnsibleContainerException):
     pass
+
+class AnsibleContainerConfigMapException(AnsibleContainerConfigException):
+    pass
