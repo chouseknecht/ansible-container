@@ -13,7 +13,6 @@ RUN dnf update -y && \
 RUN yum update -y && \
     yum install -y epel-release && \
     yum install -y make gcc git python-devel curl rsync libffi-devel openssl-devel && \
-    # yum remove -y python-chardet && \
     yum clean all
 {% elif "rhel" in distro %}
 RUN yum -y update-minimal --disablerepo "*" \
@@ -24,7 +23,7 @@ RUN yum -y update-minimal --disablerepo "*" \
                    https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
     yum -y install --disablerepo "*" \
                    --enablerepo epel,rhel-7-server-rpms,rhel-7-server-optional-rpms \
-                   make gcc git python-devel curl rsync libffi-devel openssl-devel tar redhat-rpm-config && \
+                   make gcc git python-devel curl rsync libffi-devel openssl-devel tar redhat-rpm-config&& \
     yum clean all
 {% elif distro in ["debian", "ubuntu"] %}
 RUN apt-get update -y && \
@@ -44,22 +43,20 @@ RUN apk add --no-cache -U python-dev make git curl rsync libffi libffi-dev opens
 
 RUN (curl https://bootstrap.pypa.io/get-pip.py | python - --no-cache-dir ) && \
     mkdir -p /etc/ansible/roles /_ansible/src && \
+    mkdir -p /licenses && \
     (curl https://get.docker.com/builds/Linux/x86_64/docker-{{ docker_version }}.tgz \
        | tar -zxC /usr/local/bin/ --strip-components=1 docker/docker )
 
+ADD LICENSE /licenses/LICENSE
+ADD help.1 /help.1
+
 # The COPY here will break cache if the version of Ansible Container changed
 COPY /container-src /_ansible/container
+
+ENV PYTHONPATH=/_ansible:/usr/local/lib/python2.7/site-packages:/usr/local/lib64/python2.7/site-packages
+
 RUN cd /_ansible && \
-    pip install --no-cache-dir -r container/conductor-build/conductor-requirements.txt && \
-    PYTHONPATH=. LC_ALL="en_US.UTF-8" python container/conductor-build/setup.py develop -v -N && \
+    pip install --no-cache-dir --prefix /usr/local -r container/conductor-build/conductor-requirements.txt && \
+    LC_ALL="en_US.UTF-8" python container/conductor-build/setup.py develop -v -N && \
     ansible-galaxy install -p /etc/ansible/roles -r container/conductor-build/conductor-requirements.yml
-
-{% if distro in ["centos"] %}
-# Removing python-chardet removed yum-utils, and now that we're done pip-installing things,
-# we'll put it back.
-#RUN yum install -y yum-utils && \
-#    yum clean all
-{% endif %}
-
-
 
